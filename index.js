@@ -66,8 +66,8 @@ app.post('/contact',[
     }
 })
 
-app.get('/contact/edit/:nama', (req,res) => {
-    const data = Contact.findOne({nama : req.params.nama})
+app.get('/contact/edit/:nama',async (req,res) => {
+    const data = await Contact.findOne({nama : req.params.nama})
     res.render('editContact',{data})
 })
 
@@ -75,6 +75,38 @@ app.get('/contact/:nama',async (req,res) => {
     const data = await Contact.findOne({ nama : req.params.nama})
     res.render('detail',{data})
 })
+
+app.put('/contact',
+body('nama').custom(async (value,{req}) => {
+    const duplikat = await Contact.findOne({nama : value})
+    if (value !== req.body.oldnama && duplikat) {
+        throw new Error('Nama contact sudah digunakan!')
+    }
+    return true
+})
+,async (req,res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        res.render('editContact',{
+            contact: req.body,
+            errors : errors.array()
+        })
+    }else{
+        Contact.updateOne(
+            {_id: req.body._id},
+            {
+                $set : {
+                    nama : req.body.nama,
+                    email : req.body.email,
+                    noHp : req.body.noHp
+                }
+            }).then((result) => {
+                req.flash('msg','Data Berhasil diubah!')
+                res.redirect('/contact')
+            })
+    }
+})
+
 app.delete('/contact/delete',async (req,res) => {
     const contact = await Contact.findOne({nama : req.body.nama})
     if (!contact) {
