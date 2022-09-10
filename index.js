@@ -1,11 +1,17 @@
 const express = require('express')
-const {body,validationResult, check} = require('express-validator')
-const app = express()
-const port = 3000
-const {loadContact,findContact,addContact,checkDuplicate} = require('./utils/contact.js')
 const session = require('express-session')
 const cookieParser = require('cookie-parser')
 const flash = require('connect-flash')
+const {body,validationResult, check} = require('express-validator')
+const methodOverride = require('method-override')
+require('./utils/db')
+
+const Contact = require('./models/contact')
+
+const app = express()
+const port = 3000
+
+app.use(methodOverride('_method'))
 
 app.set('view engine', 'ejs')
 
@@ -23,18 +29,13 @@ app.use(session({
 app.use(flash())
 
 app.get('/',(req,res) => {
-    const data = [
-        {
-            nama : 'ade',
-            noHp : '324923',
-            email : "adeoktaviano@gmail.com"
-        }
-    ]
-    res.render('index',data)
+
+    res.render('index')
 })
 
-app.get('/contact',(req,res) => {
-    const data = loadContact() 
+app.get('/contact',async (req,res) => {
+    const data = await Contact.find()
+    res.header(404)
     res.render('contact',{data,msg : req.flash('msg')})
 })
 
@@ -43,8 +44,8 @@ app.get('/contact/add', (req,res) => {
 })
 
 app.post('/contact',[
-    body('nama').custom((value) => {
-        const duplikat = checkDuplicate(value)
+    body('nama').custom( async (value) => {
+        const duplikat = await Contact.findOne({nama : value})
         if(duplikat){
             throw new Error('Nama Sudah Digunakan')
         }
@@ -54,20 +55,40 @@ app.post('/contact',[
     check('noHp','Nomor hp tidak valid!').isMobilePhone('id-ID'),
 ],(req,res) => {
     const errors = validationResult(req)
-    console.log();
     if (!errors.isEmpty()) {
         res.render('addContact',{errors : errors.array()})
         return 
     }else{
-        addContact(req.body)
-        req.flash('msg','Data contact berhasil ditambahkan')
-        res.redirect('/contact')
+        Contact.insertMany(req.body, (error,result) => {
+            req.flash('msg','Data contact berhasil ditambahkan')
+            res.redirect('/contact')
+        })
     }
 })
 
-app.get('/contact/:nama',(req,res) => {
-    const data = findContact(req.params.nama)
-    res.render('detail',{data})
+app.get('/contact/edit/:nama', (req,res) => {
+    const data = Contact.findOne({nama : req.params.nama})
+    res.render('editContact',{data})
 })
 
-app.listen(port)
+app.get('/contact/:nama',async (req,res) => {
+    const data = await Contact.findOne({ nama : req.params.nama})
+    res.render('detail',{data})
+})
+app.delete('/contact/delete',async (req,res) => {
+    const contact = await Contact.findOne({nama : req.body.nama})
+    if (!contact) {
+        res.status(404)
+        res.send('<h1>Not Found</h1>')
+    }else{
+        Contact.deleteOne({_id: contact._id}).then((result) => {
+        req.flash('msg',"Data Berhasil Dihapus ")
+        res.redirect('/contact')
+        })
+    }
+})
+
+
+app.listen(port, () => {
+    console.log('Terkoneksi');
+})
