@@ -1,55 +1,18 @@
-const fs = require('fs')
+const mongoose = require('mongoose')
+
+mongoose.connect('mongodb://127.0.1:27017/contact',{
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+})
 
 
-const dirPath = './data'
 
-if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath)
-}
+//Add data
 
-const dataPath = './data/contacts.json'
+//  const contact1 = new Contact({
+//     nama : 'Ade',
+//     noHp : '12332424243',
+//     email : 'ade@gmail.com'
+//  })
 
-if (!fs.existsSync(dataPath)) {
-    fs.writeFileSync(dataPath,'[]','utf-8');
-}
-
-const loadContact = () => {
-    const fileBuffer = fs.readFileSync(dataPath,'utf-8')
-    const contacts = JSON.parse(fileBuffer)
-    return contacts
-}
-
-const findContact = (nama) => {
-    const datas = loadContact();
-    const data = datas.find((contact) => contact.nama.toLowerCase() === nama.toLowerCase())
-    return data    
-}
-
-const addContact = (item) => {
-    const datas = loadContact()
-    datas.push(item)
-    fs.writeFileSync(dataPath,JSON.stringify(datas),'utf-8')
-}
-
-const checkDuplicate = (nama) => {
-    const contacts = loadContact();
-    return contacts.find( contact => contact.nama === nama)
-}
-
-const deleteContact = (nama) => {
-    const contacts = loadContact()
-    const filterContact = contacts.filter((e) => e.nama !== nama)
-    fs.writeFileSync(dataPath,JSON.stringify(filterContact))
-}
-
-const updateContact = (contact) => {
-    const contacts = loadContact()
-    const filterContact = contacts.findIndex((data) => data.nama === contact.oldnama)
-    const copyContact = [...contacts]
-    delete contact.oldnama
-    copyContact[filterContact] = contact
-    fs.writeFileSync(dataPath,JSON.stringify(copyContact)) 
-    
-}
-
-module.exports = {loadContact,findContact,addContact,checkDuplicate,deleteContact,updateContact}
+//  contact1.save().then((suc) => console.log(suc))
